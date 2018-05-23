@@ -1,4 +1,5 @@
 # 🛒 Nosto Bundle Template
+![nosto](http://cdn.www.nosto.com/wp-content/uploads/NOSTO-logo-horizontal-PRIMARY.png)
 
 Bundled template where the user can add multiple item in the cart, from the suggested list
 
