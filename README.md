@@ -7,6 +7,7 @@ Bundled template where the user can add multiple item in the cart, from the sugg
 ## ⏳  To-do
 
 * ✔️ Create and test the prototype with the test shop
-* ⏳ Sanitize from external styles
+* ✔️ Sanitize from external styles
+* ⏳ Check why the priceTotal function is giving issues
 * ⏳ Implement the *multiple products* add-to-cart API
 * ⏳ Test and add into the Toolbox account
