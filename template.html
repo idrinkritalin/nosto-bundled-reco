@@ -105,7 +105,7 @@
             #foreach($product in $products)
             <div class="nosto-product-info">
                 <div class="nosto-product-desc-block">
-                    <input name="nosto-checkBox" hiddenname="check$!product.productId" checked type="checkbox" class="nosto-checkBox" value="$!product.price">
+                    <input name="nosto-checkbox" hiddenname="check$!product.productId" checked type="checkbox" class="nosto-checkbox" value="$!product.price">
                     <a href="$!product.url" class="nosto-product-name">$!product.name.truncate(70)</a>
                     #if($product.discounted)
                       <a href="$!product.url" class="nosto-product-price">
@@ -116,7 +116,6 @@
                       <a href="$!product.url" class="nosto-price">$!product.price</a>
                     #end
                 </div>
-                <input type="hidden" class="nosto-id" id="check$!product.productId" name="qty[$!product.productId]" class="qty input-text" value="1" min="0">
             </div>
             #end
     </form>
@@ -130,20 +129,16 @@
         var totalprice = 0;
         j('input[type="checkbox"]:checked').each(function(){
             var price = j(this).val();
-            var id = j(this).attr("hiddenname");
-            j('#'+id).val(1);
             var actualPrice = Number(price.replace(/[^0-9\.]+/g,""));
             var decimalPrice = parseFloat(actualPrice);
             totalprice = totalprice + parseFloat(decimalPrice) ;
         });
         var price = parseFloat(totalprice).toFixed(2);
-        j('.nosto-total-price').html("€"+price);
+        j('.nosto-total-price').html(price + "€");
     };
 
-    j('.nosto-checkBox').on('change', function(e) {
+    j('.nosto-checkbox').on('change', function(e) {
         var totalprice = 0;
-        var id = j(this).attr("hiddenname");
-        j('#'+id).val(0);
         findTotal();
     });
 
@@ -182,7 +177,7 @@
         nostoArrayName[0].innerText = products.name;
 
         // value object
-        var nostoNodeValue = doc.querySelectorAll('#$divId .nosto-checkBox');
+        var nostoNodeValue = doc.querySelectorAll('#$divId .nosto-checkbox');
         var nostoArrayValue = Array.prototype.slice.call(nostoNodeValue);
         nostoArrayValue[0].value = `€${products.price}`;
 
@@ -209,11 +204,6 @@
         } else {
             nostoArrayPrice[0].innerText = `${products.price}.00€`
         }
-
-        // product id
-        var nostoNodeId = doc.querySelectorAll('#$divId .nosto-id');
-        var nostoArrayId = Array.prototype.slice.call(nostoNodeId);
-        nostoArrayId[0].name = `qty[${products.product_id}]`;
     };
 
     _targetWindow.jQuery(doc).ready(function() {
