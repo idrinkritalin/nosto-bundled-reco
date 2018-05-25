@@ -1,6 +1,7 @@
 #if($products.size() > 0)
 #set($imgCount = 0)
 #set($prdCount = 1)
+#set($checkboxCount = 1)
 <style>
     #$divId .nosto_tip {
       display:none;
@@ -89,7 +90,7 @@
               <li class="nosto-item nosto-list-price">
                   <span class="nosto-total">Total Price: <span class="nosto-total-price">€0</span></span>
                   <div class="nosto-cta">
-                      <button type="submit" title="Add To Basket" class="">Add To Basket</button>
+                      <button title="Add To Basket" id="nosto-add-cart">Add To Basket</button>
                   </div>
               </li>
             #else
@@ -103,35 +104,48 @@
         </ul>
         <div class="nosto-products">
             #foreach($product in $products)
+            #if($checkboxCount == 1)
+              #set($prodUrl = '#')
+            #else
+              #set($prodUrl = $product.url)
+            #end
             <div class="nosto-product-info">
                 <div class="nosto-product-desc-block">
-                    <input name="nosto-checkbox" hiddenname="check$!product.productId" checked type="checkbox" class="nosto-checkbox" value="$!product.price">
-                    <a href="$!product.url" class="nosto-product-name">$!product.name.truncate(70)</a>
+                    <input checked type="checkbox" class="nosto-checkbox" value="$!product.price" nostoId="$!product.productId">
+                    <a href="$prodUrl" class="nosto-product-name">$!product.name.truncate(70)</a>
                     #if($product.discounted)
-                      <a href="$!product.url" class="nosto-product-price">
+                      <a href="$prodUrl" class="nosto-product-price">
                       <span class="nosto-oldprice">$!product.listPrice</span>
                       <span class="nosto-price nosto-newprice">$!product.price</span>
                       </a>
                     #else
-                      <a href="$!product.url" class="nosto-price">$!product.price</a>
+                      <a href="$prodUrl" class="nosto-price">$!product.price</a>
                     #end
                 </div>
             </div>
+            #set($checkboxCount = $checkboxCount + 1)
             #end
-    </form>
     </div>
 </div>
 <script type="text/javascript">
     var doc = _targetWindow.document;
     var j = _targetWindow.jQuery;
+    var carted = [];
 
     function findTotal() {
         var totalprice = 0;
         j('input[type="checkbox"]:checked').each(function(){
             var price = j(this).val();
-            var actualPrice = Number(price.replace(/[^0-9\.]+/g,""));
+            // fix if the price contains a ","
+            if(price.includes(",")){
+              var priceChecked = price.replace(",",".");
+            } else {
+              var priceChecked = price;
+            }
+
+            var actualPrice = Number(priceChecked.replace(/[^0-9\.]+/g,""));
             var decimalPrice = parseFloat(actualPrice);
-            totalprice = totalprice + parseFloat(decimalPrice) ;
+            totalprice = totalprice + parseFloat(decimalPrice);
         });
         var price = parseFloat(totalprice).toFixed(2);
         j('.nosto-total-price').html(price + "€");
@@ -150,14 +164,19 @@
             var name = attr.className;
             nostoProd[name] = attribute;
         });
-            console.log('product', nostoProd);
         return nostoProd;
     };
 
+    function nodeToArray(selector) {
+      var nostoNode = doc.querySelectorAll(selector);
+      var nostoArray = Array.prototype.slice.call(nostoNode);
+      return nostoArray
+    }
+
     function pushProd(products) {
-        var nostoNodeItems = doc.querySelectorAll('#$divId .nosto-list-item');
-        var nostoArrayItems = Array.prototype.slice.call(nostoNodeItems);
-        var nostoItem = nostoArrayItems[0];
+        // item
+        var itemArray = nodeToArray('#$divId .nosto-list-item')
+        var nostoItem = itemArray[0];
         var nostoItemStyle = nostoItem.children[0];
         var nostoItemLink = nostoItem.children[1];
         var nostoBgImg = `
@@ -171,45 +190,57 @@
         nostoItemLink.attributes[1].alt = products.name;
         nostoItemLink.attributes[1].textContent = products.name;
 
-        // product name
-        var nostoNodeName = doc.querySelectorAll('#$divId .nosto-product-name');
-        var nostoArrayName = Array.prototype.slice.call(nostoNodeName);
-        nostoArrayName[0].innerText = products.name;
+        // name
+        var nameArray = nodeToArray('#$divId .nosto-product-name')
+        nameArray[0].innerText = products.name;
 
-        // value object
-        var nostoNodeValue = doc.querySelectorAll('#$divId .nosto-checkbox');
-        var nostoArrayValue = Array.prototype.slice.call(nostoNodeValue);
-        nostoArrayValue[0].value = `€${products.price}`;
+        // id
+        var idArray = nodeToArray('#$divId .nosto-checkbox')
+        idArray[0].attributes.nostoid.value = products.product_id;
 
-        // product price
-        var nostoNodePrice = doc.querySelectorAll('#$divId .nosto-price');
-        var nostoArrayPrice = Array.prototype.slice.call(nostoNodePrice);
-        // do the same for discounted prods
-        var nostoNodeListPrice = doc.querySelectorAll('#$divId .nosto-oldprice');
-        var nostoArrayListPrice = Array.prototype.slice.call(nostoNodeListPrice);
+        // value
+        var valueArray = nodeToArray('#$divId .nosto-checkbox')
+        valueArray[0].value = `€${products.price}`;
+
+        // price
+        var priceArray = nodeToArray('#$divId .nosto-price')
+
+        // discounted price
+        var discountedPriceArray = nodeToArray('#$divId .nosto-oldprice')
+
+        // check if the price is discounted
         if(products.price != products.list_price) {
-            nostoArrayListPrice[0].innerText = `${products.list_price}€`;
+            discountedPriceArray[0].innerText = `${products.list_price}€`;
         } else {
-            nostoArrayListPrice[0].innerText = ``;
+            discountedPriceArray[0].innerText = ``;
         }
+
         // fix price decimals with the 0 if is rounded
         var priceSplitted = products.price.toString().split('.');
         if(products.price.includes('.')) {
             priceSplitted[1].length === 1
-            ? nostoArrayPrice[0].innerText = `${products.price}0€`
-            : nostoArrayPrice[0].innerText = `${products.price}€`
+            ? priceArray[0].innerText = `${products.price}0€`
+            : priceArray[0].innerText = `${products.price}€`
         }
         else if (products.price === '') {
-            nostoArrayPrice[0].innerText = ``
+            priceArray[0].innerText = ``
         } else {
-            nostoArrayPrice[0].innerText = `${products.price}.00€`
+            priceArray[0].innerText = `${products.price},00€`
         }
     };
 
-    _targetWindow.jQuery(doc).ready(function() {
+    j(doc).ready(function() {
         mapProduct();
         pushProd(mapProduct());
         findTotal();
     });
+
+    function nostoAddCart() {
+      console.log(carted)
+      //_targetWindow.Nosto.addMultipleProductsToCart([581,864,819]);
+    }
+
+    var cartCta = doc.querySelector('#nosto-add-cart');
+    cartCta.addEventListener("click", nostoAddCart);
 </script>
 #end
