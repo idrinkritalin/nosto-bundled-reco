@@ -1,6 +1,7 @@
 #if($products.size() > 0)
 #set($imgCount = 0)
 #set($prdCount = 1)
+#set($itemCount = 0)
 #set($checkboxCount = 1)
 <style>
     #$divId .nosto_tip {
@@ -33,6 +34,10 @@
       height: 200px;
       display: block;
       position: relative;
+    }
+
+    #$divId .nosto-oldprice{
+      text-decoration: line-through;
     }
 </style>
 <h4 class="nosto-header">$!title</h4>
@@ -104,19 +109,24 @@
         </ul>
         <div class="nosto-products">
             #foreach($product in $products)
-            #if($checkboxCount == 1)
-              #set($prodUrl = '#')
-            #else
-              #set($prodUrl = $product.url)
-            #end
+              #if($checkboxCount == 1)
+                #set($prodUrl = '#')
+              #else
+                #set($prodUrl = $product.url)
+              #end
             <div class="nosto-product-info">
                 <div class="nosto-product-desc-block">
                     <input checked type="checkbox" class="nosto-checkbox" value="$!product.price" nostoId="$!product.productId">
                     <a href="$prodUrl" class="nosto-product-name">$!product.name.truncate(70)</a>
-                    #if($product.discounted)
+                    #if($itemCount == 0)
                       <a href="$prodUrl" class="nosto-product-price">
-                      <span class="nosto-oldprice">$!product.listPrice</span>
-                      <span class="nosto-price nosto-newprice">$!product.price</span>
+                        <span class="nosto-prod-oldprice nosto-oldprice">$!product.listPrice</span>
+                        <span class="nosto-price nosto-newprice">$!product.price</span>
+                      </a>
+                    #elseif($product.discounted && $itemCount != 0)
+                      <a href="$prodUrl" class="nosto-product-price">
+                        <span class="nosto-oldprice">$!product.listPrice</span>
+                        <span class="nosto-price nosto-newprice">$!product.price</span>
                       </a>
                     #else
                       <a href="$prodUrl" class="nosto-price">$!product.price</a>
@@ -124,8 +134,9 @@
                 </div>
             </div>
             #set($checkboxCount = $checkboxCount + 1)
+            #set($itemCount = $itemCount + 1)
             #end
-    </div>
+        </div>
 </div>
 <script type="text/javascript">
     var doc = _targetWindow.document;
@@ -134,7 +145,7 @@
 
     function findTotal() {
         var totalprice = 0;
-        j('input[type="checkbox"]:checked').each(function(){
+        j('#$divId input[type="checkbox"]:checked').each(function(){
             var price = j(this).val();
             // fix if the price contains a ","
             if(price.includes(",")){
@@ -142,11 +153,11 @@
             } else {
               var priceChecked = price;
             }
-
             var actualPrice = Number(priceChecked.replace(/[^0-9\.]+/g,""));
             var decimalPrice = parseFloat(actualPrice);
             totalprice = totalprice + parseFloat(decimalPrice);
         });
+
         var price = parseFloat(totalprice).toFixed(2);
         j('.nosto-total-price').html(price + "€");
     };
@@ -158,8 +169,8 @@
 
     function mapProduct() {
         var nostoProd = {};
-        var nostoProdArr = [].slice.call(doc.querySelector('.nosto_product').children);
-        nostoProdArr.forEach(function(attr) {
+        var nostoProdArray = [].slice.call(doc.querySelector('.nosto_product').children);
+        nostoProdArray.forEach(function(attr) {
             var attribute = attr.innerText;
             var name = attr.className;
             nostoProd[name] = attribute;
@@ -186,35 +197,28 @@
                 background-repeat: no-repeat;
                 background-size: contain !important;
             } `;
-                nostoItemStyle.innerHTML = nostoBgImg;
+        nostoItemStyle.innerHTML = nostoBgImg;
         nostoItemLink.attributes[1].alt = products.name;
         nostoItemLink.attributes[1].textContent = products.name;
-
         // name
         var nameArray = nodeToArray('#$divId .nosto-product-name')
         nameArray[0].innerText = products.name;
-
         // id
         var idArray = nodeToArray('#$divId .nosto-checkbox')
         idArray[0].attributes.nostoid.value = products.product_id;
-
         // value
         var valueArray = nodeToArray('#$divId .nosto-checkbox')
-        valueArray[0].value = `€${products.price}`;
-
+        valueArray[0].value = `${products.price}€`;
         // price
         var priceArray = nodeToArray('#$divId .nosto-price')
-
         // discounted price
-        var discountedPriceArray = nodeToArray('#$divId .nosto-oldprice')
-
+        var discountedPriceArray = nodeToArray('#$divId .nosto-prod-oldprice')
         // check if the price is discounted
-        if(products.price != products.list_price) {
+        if(products.price !== products.list_price) {
             discountedPriceArray[0].innerText = `${products.list_price}€`;
         } else {
             discountedPriceArray[0].innerText = ``;
         }
-
         // fix price decimals with the 0 if is rounded
         var priceSplitted = products.price.toString().split('.');
         if(products.price.includes('.')) {
@@ -225,22 +229,35 @@
         else if (products.price === '') {
             priceArray[0].innerText = ``
         } else {
-            priceArray[0].innerText = `${products.price},00€`
+            priceArray[0].innerText = `${products.price}.00€`
         }
     };
 
     j(doc).ready(function() {
-        mapProduct();
         pushProd(mapProduct());
         findTotal();
     });
 
+    function checkCarted(){
+      var checkedProd = doc.querySelectorAll('#$divId input[type="checkbox"]:checked');
+      checkedProd.forEach(function(prod) {
+        if(prod.checked === true) {
+          carted.push(Number(prod.attributes.nostoid.value))
+        }
+      });
+    }
+
     function nostoAddCart() {
-      console.log(carted)
-      //_targetWindow.Nosto.addMultipleProductsToCart([581,864,819]);
+      checkCarted()
+      var cartObj = []
+      carted.map((el) => {
+        cartObj.push({'productId': el, 'skuId': el})
+      })
+      debugger
+      _targetWindow.Nosto.addMultipleProductsToCart(cartObj, this);
     }
 
     var cartCta = doc.querySelector('#nosto-add-cart');
-    cartCta.addEventListener("click", nostoAddCart);
+    cartCta.addEventListener('click', nostoAddCart);
 </script>
 #end
